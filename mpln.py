@@ -16,7 +16,6 @@ import argparse
 import sys, os
 import random
 import time
-from PIL import Image
 from scipy import misc
 import colored
 import pickle
