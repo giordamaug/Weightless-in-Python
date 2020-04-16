@@ -16,6 +16,7 @@ import argparse
 import sys, os
 import random
 import time
+from PIL import Image
 from scipy import misc
 import colored
 import pickle
@@ -334,8 +335,8 @@ class PyramMPLN:
             for i,idx in enumerate(self._mk_tuple(datain, n, self._mappings[l], self._sizes[l])):
                 storedvalue = self._layers[l][i][idx]
                 valueidx = np.where(self._values == storedvalue)[0][0]
-                output[l][i] = np.random.choice(2, 1, p=[1-self._probs[valueidx],self._probs[valueidx]])[0]
-                #output[l][i] = 1 if storedvalue >= self._novals/2 else 0
+                #output[l][i] = np.random.choice(2, 1, p=[1-self._probs[valueidx],self._probs[valueidx]])[0]
+                output[l][i] = 1 if storedvalue >= self._novals/2 else 0
                 if self._dblvl > 1: print(output[l][i])
                 X[i] = output[l][i]
             if self._dblvl > 1: print(X)
@@ -351,8 +352,8 @@ class PyramMPLN:
             for i,idx in enumerate(self._mk_tuple(datain, n, self._mappings[l], self._sizes[l])):
                 storedvalue = self._layers[l][i][idx]
                 valueidx = np.where(self._values == storedvalue)[0][0]
-                #output[l][i] = random.choices(population=[0,1], weights=[self._probs[valueidx],1-self._probs[valueidx]])[0]
-                output[l][i] = np.random.choice(2, 1, p=[1-self._probs[valueidx],self._probs[valueidx]])[0]
+                output[l][i] = 1 if storedvalue >= self._novals/2 else 0
+                #output[l][i] = np.random.choice(2, 1, p=[1-self._probs[valueidx],self._probs[valueidx]])[0]
                 if self._dblvl > 1: print(output[l][i])
                 X[i] = output[l][i]
         r = 1 if y == output[-1][0] else -1
@@ -448,7 +449,9 @@ def main(argv):
     # load dataset
     if args.inputfile:
         if os.path.isdir(args.inputfile):
-            X, y = read_pics_dataset(args.inputfile)
+            X, y = read_pics_dataset(args.inputfile,labels=[0,1])
+            #X, y = read_pics_dataset(args.inputfile,labels=[0,1,2,3,4,5,6,7,8,9])
+            y[y > 0] = 1
             X, y = shuffle(X, y)
             size = len(X[0])/32
         else:
@@ -459,7 +462,7 @@ def main(argv):
                 y[y == -1] = 0
             else:
                 raise Exception('Unsupported file format!')
-    else:     # toy dataset (try: mpln.py -n 4 -w 5 -D 1 -a 2.5)
+    else:     # try dataset (try: mpln.py -n 4 -w 5 -D 1 -a 2.5)
         X = np.array([[1, 1, 1, 0, 0],
                       [0, 1, 1, 1, 0],
                       [0, 0, 1, 1, 1],
@@ -497,6 +500,7 @@ def main(argv):
     if debug > 0: os.system('clear')
     Error = 1
     LastError = 1
+    epoch_count =0 1
     while Error > .1:           # loop through epochs
         X_train, y_train = unison_shuffled_copies(X_train,y_train)
         mplnprev = copy.deepcopy(mpln)
@@ -513,11 +517,13 @@ def main(argv):
                 if c == 'x':
                    args.xflag = False
             if debug > 0: os.system('clear')
-            timing_update(i,y_train[i]==mpln._lastout,title='train',size=len(X_train),lasterr=LastError,error=Error)
+            timing_update(i,y_train[i]==mpln._lastout,title='train %02d'%epoch_count,size=len(X_train),lasterr=LastError,error=Error)
         if LastError < Error:
             break
         else:
             LastError = Error
+        epoch_count += 1
+        print('')
     if LastError < Error:    # restore last state in case of no decrease!
         mpln = mplnprev
         Error = LastError
@@ -531,7 +537,7 @@ def main(argv):
         prediction = mpln.test(sample)
         delta += abs(y_test[i] - prediction)
         y_pred += [prediction]
-        timing_update(i,y_test[i]==prediction,title='test ',clr=color.GREEN,size=len(X_test),lasterr=Error,error=delta/float(i+1))
+        timing_update(i,y_test[i]==prediction,title='test   ',clr=color.GREEN,size=len(X_test),lasterr=Error,error=delta/float(i+1))
     timing_init()
     print_confmatrix(confusion_matrix(y_test, y_pred))
     print("MPLN Acc. %.2f"%(accuracy_score(y_test, y_pred)))
