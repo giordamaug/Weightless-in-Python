@@ -449,9 +449,9 @@ def main(argv):
     # load dataset
     if args.inputfile:
         if os.path.isdir(args.inputfile):
-            X, y = read_pics_dataset(args.inputfile,labels=[0,1])
+            X, y = read_pics_dataset(args.inputfile,labels=[1,2])
             #X, y = read_pics_dataset(args.inputfile,labels=[0,1,2,3,4,5,6,7,8,9])
-            y[y > 0] = 1
+            y[y == 2] = 0
             X, y = shuffle(X, y)
             size = len(X[0])/32
         else:
@@ -500,7 +500,7 @@ def main(argv):
     if debug > 0: os.system('clear')
     Error = 1
     LastError = 1
-    epoch_count =0 1
+    epoch_count = 1
     while Error > .1:           # loop through epochs
         X_train, y_train = unison_shuffled_copies(X_train,y_train)
         mplnprev = copy.deepcopy(mpln)
