@@ -335,8 +335,8 @@ class PyramMPLN:
             for i,idx in enumerate(self._mk_tuple(datain, n, self._mappings[l], self._sizes[l])):
                 storedvalue = self._layers[l][i][idx]
                 valueidx = np.where(self._values == storedvalue)[0][0]
-                #output[l][i] = np.random.choice(2, 1, p=[1-self._probs[valueidx],self._probs[valueidx]])[0]
-                output[l][i] = 1 if storedvalue >= self._novals/2 else 0
+                output[l][i] = np.random.choice(2, 1, p=[1-self._probs[valueidx],self._probs[valueidx]])[0]
+                #output[l][i] = 1 if storedvalue >= self._novals/2 else 0
                 if self._dblvl > 1: print(output[l][i])
                 X[i] = output[l][i]
             if self._dblvl > 1: print(X)
@@ -352,8 +352,8 @@ class PyramMPLN:
             for i,idx in enumerate(self._mk_tuple(datain, n, self._mappings[l], self._sizes[l])):
                 storedvalue = self._layers[l][i][idx]
                 valueidx = np.where(self._values == storedvalue)[0][0]
-                output[l][i] = 1 if storedvalue >= self._novals/2 else 0
-                #output[l][i] = np.random.choice(2, 1, p=[1-self._probs[valueidx],self._probs[valueidx]])[0]
+                #output[l][i] = 1 if storedvalue >= self._novals/2 else 0
+                output[l][i] = np.random.choice(2, 1, p=[1-self._probs[valueidx],self._probs[valueidx]])[0]
                 if self._dblvl > 1: print(output[l][i])
                 X[i] = output[l][i]
         r = 1 if y == output[-1][0] else -1
@@ -449,9 +449,10 @@ def main(argv):
     # load dataset
     if args.inputfile:
         if os.path.isdir(args.inputfile):
-            X, y = read_pics_dataset(args.inputfile,labels=[1,2])
+            X, y = read_pics_dataset(args.inputfile,labels=[0,1])
             #X, y = read_pics_dataset(args.inputfile,labels=[0,1,2,3,4,5,6,7,8,9])
-            y[y == 2] = 0
+            #y[y == 2] = 0
+            #y[y == 3] = 1
             X, y = shuffle(X, y)
             size = len(X[0])/32
         else:
@@ -521,9 +522,9 @@ def main(argv):
         if LastError < Error:
             break
         else:
+            print('')
             LastError = Error
         epoch_count += 1
-        print('')
     if LastError < Error:    # restore last state in case of no decrease!
         mpln = mplnprev
         Error = LastError
