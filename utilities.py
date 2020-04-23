@@ -8,6 +8,9 @@ from sklearn.preprocessing import MinMaxScaler
 import scipy.sparse as sps
 import numpy as np
 
+white_color = colored.fg('#ffffff') + colored.bg('#ffffff')
+black_color = colored.fg('#000000') + colored.bg('#000000')
+
 def path_leaf(path):
     head, tail = os.path.split(path)
     return tail or os.path.basename(head)
