@@ -191,6 +191,42 @@ class PyramMPLN:
                 X[i] = output[l][i]
         self._lastout = output[-1][0]     # store last output
                 
+    def fit(self, X, y):
+        if self._dblvl > 0: timing_init()
+        Error = 1
+        LastError = 1
+        epoch_count = 1
+        while Error > .1:           # loop through epochs
+            X_train, y_train = unison_shuffled_copies(X,y)
+            mplnprev = copy.deepcopy(self)
+            delta = 0
+            for i,sample in enumerate(X_train):
+                if self._dblvl > 1:  print("Label %d"%y[i])
+                self.train(sample, y_train[i])
+                delta += abs(y_train[i] - self._lastout)
+                Error = delta/float(i+1)
+                if self._dblvl > 1: print_data(sample,size); print(self); os.system('clear')
+                if self._dblvl > 0: timing_update(i,y_train[i]==self._lastout,title='train %02d'%epoch_count,size=len(X_train),lasterr=LastError,error=Error)
+            if LastError < Error:
+                break
+            else:
+                if self._dblvl > 0: print('')
+                LastError = Error
+            epoch_count += 1
+        if LastError < Error:    # restore last state in case of no decrease!
+            self = mplnprev
+            Error = LastError
+        return self
+
+    def predict(self,X_test):
+        if self._dblvl > 0: timing_init()
+        y_pred = np.array([])
+        delta = 0
+        for i,sample in enumerate(X_test):
+            y_pred = np.append(y_pred,[ self.test(sample)])
+            if self._dblvl > 0: timing_update(i,True,title='test    ',clr=color.GREEN,size=len(X_test))
+        return y_pred
+
     def __str__(self,align='h'):
         rep = "MPLN Pyramid (RetinaSize: %d, NoBits: %d, Values: %r, Probs: %r,Layers: %r, Nodes: %d)\n"%(self._retina_size, self.getNoBits(),self.getValues(),self.getProbs(),self.getNoPLN(), self._nonodes)
         if align == 'v':
@@ -284,58 +320,14 @@ def main(argv):
         X_train, X_test, y_train, y_test = X,X,y,y
 
     mpln = PyramMPLN(args.bits,len(X[0]),omega=args.omega,alpha=args.alpha,map=args.mapping,dblvl=debug)
-    timing_init()
-    if args.xflag: os.system('clear')
-    if debug > 0: print(mpln)
-    if args.xflag: 
-        c = raw_input("[TRAIN] Press Enter to continue..."); 
-        if c == 'c':
-           args.xflag = False
-    if debug > 0: os.system('clear')
-    Error = 1
-    LastError = 1
-    epoch_count = 1
-    while Error > .1:           # loop through epochs
-        X_train, y_train = unison_shuffled_copies(X_train,y_train)
-        mplnprev = copy.deepcopy(mpln)
-        delta = 0
-        for i,sample in enumerate(X_train):
-            if debug > 1:  print("Label %d"%y[i])
-            mpln.train(sample, y_train[i])
-            delta += abs(y_train[i] - mpln._lastout)
-            Error = delta/float(i+1)
-            if debug > 0: print_data(sample,size); print(mpln)
-            if args.xflag: 
-                c = raw_input("[Test] Press Enter to continue...")
-                print(c)
-                if c == 'x':
-                   args.xflag = False
-            if debug > 0: os.system('clear')
-            timing_update(i,y_train[i]==mpln._lastout,title='train %02d'%epoch_count,size=len(X_train),lasterr=LastError,error=Error)
-        if LastError < Error:
-            break
-        else:
-            print('')
-            LastError = Error
-        epoch_count += 1
-    if LastError < Error:    # restore last state in case of no decrease!
-        mpln = mplnprev
-        Error = LastError
+    mpln.fit(X_train,y_train)
     if args.dumpfile is not None:
         pickle.dump(mpln,open(args.dumpfile,'w'))
     print('')
-    timing_init()
-    y_pred = []
-    delta = 0
-    for i,sample in enumerate(X_test):
-        prediction = mpln.test(sample)
-        delta += abs(y_test[i] - prediction)
-        y_pred += [prediction]
-        timing_update(i,y_test[i]==prediction,title='test   ',clr=color.GREEN,size=len(X_test),lasterr=Error,error=delta/float(i+1))
-    timing_init()
+    y_pred = mpln.predict(X_test)
     print_confmatrix(confusion_matrix(y_test, y_pred))
     print("MPLN Acc. %.2f"%(accuracy_score(y_test, y_pred)))
-    if debug > 0: print(mpln)
+    if mpln._dblvl > 1: print(mpln)
     return mpln
                    
 if __name__ == "__main__":
