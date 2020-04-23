@@ -4,23 +4,22 @@ import sys
 import random
 import os
 import collections
+from utilities import *
 import time
 import math
 undef = 4096
-
-
-import imageio
+# import warnings filter
+from warnings import simplefilter
+# ignore all future warnings
+simplefilter(action='ignore', category=FutureWarning)
 import glob
     
     
-from sklearn.datasets import load_svmlight_file
-from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
-import scipy.sparse as sps
 
 parser = argparse.ArgumentParser(description='pln')
 parser.add_argument('-i', "--inputfile", metavar='<inputfile>', type=str, help='input file ', required=True)
@@ -40,85 +39,7 @@ mypowers = 2**np.arange(32, dtype = np.uint32)[::]
 tm_progress_ = 0.01
 tm_starttm_ = time.time()
     
-class color:
-    PURPLE = '\033[95m'
-    CYAN = '\033[96m'
-    DARKCYAN = '\033[36m'
-    BLUE = '\033[94m'
-    GREEN = '\033[0;32m'
-    WHITEBLACK = '\033[1m\033[40;37m'
-    BLUEBLACK = '\033[1m\033[40;94m'
-    YELLOWBLACK = '\033[1m\033[40;93m'
-    YELLOW = '\033[93m'
-    RED = '\033[91m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-    END = '\033[0m'
 
-def timing_init():
-    global tm_starttm_
-    global tm_progress_
-    tm_progress_ = 0.01
-    tm_starttm_ = time.time()
-    
-def timing_update(X,i,clr=color.BLUE,label='train',size=100):
-    global tm_starttm_
-    global tm_progress_
-    tm,tme = compTime(time.time()-tm_starttm_,tm_progress_)
-    tm_progress_ = printProgressBar(label, tm, tme, clr, color.RED, i+1,tm_progress_,size)
-
-def printProgressBar(label,time,etime,basecolor, cursorcolor, linecnt,progress,size):
-    barwidth = 70
-    progress = linecnt / float(size);
-    str = '%s |' % label
-    pos = int(barwidth * progress)
-    str += basecolor
-    for p in range(barwidth):
-        if p < pos:
-            str += u'\u2588'
-        elif p == pos:
-            str += color.END + cursorcolor + u'\u2588' + color.END + basecolor
-        else:
-            str += u'\u2591'
-    str += color.END + '| ' + "{:>3}".format(int(progress * 100.0)) + ' % ' + color.YELLOWBLACK + ' ' + etime + ' ' + color.WHITEBLACK + time + ' ' + color.END
-    #sys.stdout.write("\r%s" % str.encode('utf-8'))
-    sys.stdout.write("\r%s" % str)
-    sys.stdout.flush()
-    return progress
-
-def compTime(deltatime,progress):
-    hours, rem = divmod(deltatime*((1.0-progress) / progress), 3600)
-    hourse, reme = divmod(deltatime, 3600)
-    minutes, seconds = divmod(rem, 60)
-    minutese, secondse = divmod(reme, 60)
-    tm = "{:0>2}:{:0>2}:{:02.0f}".format(int(hours),int(minutes),seconds)
-    tme = "{:0>2}:{:0>2}:{:02.0f}".format(int(hourse),int(minutese),secondse)
-    return tm,tme
-
-def print_confmatrix(table,fieldsize=3,decimals=3):
-    nclasses = len(table)
-    hfrmt = '{0: >%d}' % fieldsize
-    dfrmt = '%%%dd' % fieldsize
-    ffrmt = '%%%d.0%df' % (fieldsize,decimals)
-    str = (' ' * fieldsize)
-    for c in range(nclasses):
-        str +=  ' '  + color.BOLD + hfrmt.format(c) + color.END
-    print(str)
-    print((' ' * fieldsize) + '┌' + ('─' * fieldsize + '┬') * (nclasses-1) + ('─' * fieldsize) + '┐')
-    for k in range(nclasses):
-        str = color.BOLD + hfrmt.format(k) + color.END
-        for j in range(nclasses):
-            if table[k][j]==0:
-                str += '│' + (' '* fieldsize)
-                continue
-            if j==k:
-                str += '│' + dfrmt % (table[k][j])
-            else:
-                str += '│' + color.RED + dfrmt % (table[k][j]) + color.END
-        str += '│'
-        print(str + '')
-    print((' ' * fieldsize) + '└' + ('─' * fieldsize + '┴') * (nclasses-1) + ('─' * fieldsize) + '┘')
-    
 class WiSARD:
     """WiSARD Classifier """
     def _mk_tuple(self, X, n_ram, map, size):
@@ -582,130 +503,97 @@ def genCode(n):
 
 def main(argv):
     # parsing command line
-    os.system('clear')
     args = parser.parse_args()
     debug = args.debuglvl
+    size = args.tics
     
     # check dataset format (arff, libsvm)
     datafile = args.inputfile
-    if not os.path.isfile(datafile):
-        raise ValueError("Cannot open file %s" % datafile)
-    if datafile.endswith('.libsvm'):
-        X, y = load_svmlight_file(datafile)
-        if sps.issparse(X):
-            X = X.toarray()
+    if os.path.isdir(args.inputfile):
+        X, y = read_pics_dataset(args.inputfile,labels=[0,1])
+        X, y = shuffle(X, y)
+        size = len(X[0])/32
     else:
-        raise Exception('Unsupported file format!')
+        if not os.path.isfile(args.inputfile):
+            raise ValueError("Cannot open file %s" % args.inputfile)
+        else:
+            X, y = read_dataset_fromfile(args.inputfile)
+            nX = binarize(X, size, args.code)
+            y[y == -1] = 0
 
     class_names = np.unique(y)
     dataname = os.path.basename(datafile).split(".")[0]
-
-            # create pyramids
-    # dataset normalization
-    if args.scale:
-        scaler = MinMaxScaler(feature_range=(0.0, 1.0))
-        X = scaler.fit_transform(X)
-        X = X.astype(np.float)
-        y = y.astype(np.float)
-
-    # binarize (histogram)
-    tX = (X * args.tics).astype(np.int32)
-
-    if args.code == 'g':
-        ticsize = args.tics.bit_length()
-        nX = np.zeros([tX.shape[0],tX.shape[1]*ticsize], dtype=np.int)
-        graycode = genCode(ticsize)
-        for r in range(tX.shape[0]):
-            newRow = [int(e) for e in list(''.join([graycode[tX[r,i]] for i in range(tX.shape[1])]))]
-            for i in range(tX.shape[1]*ticsize):
-                 nX[r,i] = newRow[i]
-    elif args.code == 't':
-        nX = np.zeros([tX.shape[0],tX.shape[1]*args.tics], dtype=np.int)
-        for r in range(tX.shape[0]):
-            for i in range(tX.shape[1]*args.tics):
-                if i % args.tics < tX[r,int(i / args.tics)]:
-                    nX[r,i] = 1
-    elif args.code == 'c':
-        nX = np.zeros([tX.shape[0],tX.shape[1]*args.tics], dtype=np.int)
-        for r in range(tX.shape[0]):
-            for i in range(tX.shape[1]*args.tics):
-                if i % args.tics + 1== tX[r,int(i / args.tics)]:
-                    nX[r,i] = 1
-    else:
-        raise Exception('Unsupported data code!')
-
-    y[y == -1] = 0
-    y = y.astype(np.int32)
         
+    # create pyramids
+    pln = PyramGSN(args.bits,len(nX[0]),map=args.map,dblvl=debug,policy=args.policy,mode=args.mode)
+
     if args.cv:
-        nX_train, nX_test, y_train, y_test = train_test_split(nX, y, test_size=0.30, random_state=42)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.30, random_state=42)
+        kf = StratifiedKFold(random_state=0,n_splits=10, shuffle=True)
+        timing_init()
+        ylabels = np.array([])
+        y_predRF = np.array([])
+        y_predSVC = np.array([])
+        y_pred = []
+        for train_index, test_index in kf.split(X,y):
+            nX_train, nX_test = nX[train_index], nX[test_index]
+            X_train, X_test = X[train_index], X[test_index]
+            y_train, y_test = y[train_index], y[test_index]
+            ylabels = np.append(ylabels,y_test); delta = 0
+            for i,sample in enumerate(nX_train):
+                if debug > 0:  print("Label %d"%y[i]) ; print_data(sample,args.tics); print(pln)
+                pln.train(sample, y_train[i])
+                res = pln.test(sample)
+                delta += abs(y_test[i] - res)
+                if args.xflag: input("[TRAIN] Press Enter to continue..."); os.system('clear')
+                timing_update(i,y_train[i]==res,title='train ',size=len(nX_train),error=delta/float(i+1))
+            timing_init()
+            delta = 0
+            for i,sample in enumerate(nX_test):
+                res = pln.test(sample)
+                y_pred += [res]
+                delta += abs(y_test[i] - res)
+                timing_update(i,y_test[i]==res,title='test  ',clr=color.GREEN,size=len(nX_test),error=delta/float(i+1))
+            y_predRF = np.append(y_predRF, RandomForestClassifier(random_state=0).fit(X_train, y_train).predict(X_test))
+            y_predSVC = np.append(y_predSVC, SVC(kernel='rbf').fit(X_train, y_train).predict(X_test))
+            print()
+        timing_init()
+        print()
+        print_confmatrix(confusion_matrix(ylabels, y_pred))
+        print("GSN Acc. %.2f"%(accuracy_score(ylabels, y_pred)))
+        print_confmatrix(confusion_matrix(ylabels, y_predRF))
+        print("RF  Acc. %.2f"%(accuracy_score(ylabels, y_predRF)))
+        print_confmatrix(confusion_matrix(ylabels, y_predSVC))
+        print("SVM Acc. %.2f"%(accuracy_score(ylabels, y_predSVC)))
     else:
         nX_train, nX_test, y_train, y_test = nX,nX,y,y
         X_train, X_test = X,X
-
-    # create pyramids
-    pln = PyramGSN(args.bits,len(nX[0]),map=args.map,dblvl=debug,policy=args.policy,mode=args.mode)
-    #pln = WiSARD(args.bits,len(nX[0]),np.unique(y),map=args.map)
-
-    if args.cv:
-    	kf = StratifiedKFold(random_state=0,n_splits=10, shuffle=True)
-    	timing_init()
-    	ylabels = np.array([])
-    	y_pred = []
-    	y_predRF = np.array([])
-    	y_predSVC = np.array([])
-    	for train_index, test_index in kf.split(X,y):
-    		nX_train, nX_test = nX[train_index], nX[test_index]
-    		X_train, X_test = X[train_index], X[test_index]
-    		y_train, y_test = y[train_index], y[test_index]
-    		ylabels = np.append(ylabels,y_test)
-    		for i,sample in enumerate(nX_train):
-    			if debug > 0:  print("Label %d"%y[i]) ; print_data(sample,args.tics); print(pln)
-    			pln.train(sample, y_train[i])        
-    			if args.xflag: input("[TRAIN] Press Enter to continue..."); os.system('clear')
-    			timing_update(nX_train,i,size=len(nX_train))
-    		timing_init()
-    		print()
-    		for i,sample in enumerate(nX_test):
-    			y_pred += [pln.test(sample)]
-    			timing_update(nX_test,i,clr=color.GREEN,size=len(nX_test))
-    		y_predRF = np.append(y_predRF, RandomForestClassifier(random_state=0).fit(X_train, y_train).predict(X_test))
-    		y_predSVC = np.append(y_predSVC, SVC(kernel='rbf').fit(X_train, y_train).predict(X_test))
-    		print()
-    	timing_init()
-    	print()
-    	print_confmatrix(confusion_matrix(ylabels, y_pred))
-    	print("GSN Acc. %.2f"%(accuracy_score(ylabels, y_pred)))
-    	print_confmatrix(confusion_matrix(ylabels, y_predRF))
-    	print("RF  Acc. %.2f"%(accuracy_score(ylabels, y_predRF)))
-    	print_confmatrix(confusion_matrix(ylabels, y_predSVC))
-    	print("SVM Acc. %.2f"%(accuracy_score(ylabels, y_predSVC)))
-    else:
-	    timing_init()
-	    for i,sample in enumerate(nX_train):
-	        if debug > 0:  print("Label %d"%y[i]) ; print_data(sample,args.tics); print(pln)
-	        pln.train(sample, y_train[i])        
-	        #print(pln)
-	        if args.xflag: input("[TRAIN] Press Enter to continue..."); os.system('clear')
-	        timing_update(nX_train,i,size=len(nX_train))
-	    timing_init()
-	    print()
-	    y_pred = []
-	    for i,sample in enumerate(nX_test):
-	        y_pred += [pln.test(sample)]
-	        timing_update(nX_test,i,clr=color.GREEN,size=len(nX_test))
-	    print()
-	    print_confmatrix(confusion_matrix(y_test, y_pred))
-	    print("GSN Acc. %.2f"%(accuracy_score(y_test, y_pred)))
-	    y_predRF = RandomForestClassifier(random_state=0).fit(X_train,y_train).predict(X_test)
-	    print_confmatrix(confusion_matrix(y_test, y_predRF))
-	    print("RF  Acc. %.2f"%(accuracy_score(y_test, y_predRF)))
-	    y_predSVC = SVC(kernel='rbf').fit(X_train,y_train).predict(X_test)
-	    print_confmatrix(confusion_matrix(y_test, y_predSVC))
-	    print("SVM Acc. %.2f"%(accuracy_score(y_test, y_predSVC)))
-    #print(pln)
-   
+        timing_init()
+        delta = 0
+        for i,sample in enumerate(nX_train):
+            if debug > 0:  print("Label %d"%y[i]) ; print_data(sample,args.tics); print(pln)
+            pln.train(sample, y_train[i])        
+            res = pln.test(sample)
+            delta += abs(y_test[i] - res)
+            if args.xflag: input("[TRAIN] Press Enter to continue..."); os.system('clear')
+            timing_update(i,y_train[i]==res,title='train ',size=len(nX_train),error=delta/float(i+1))
+        print()
+        timing_init()
+        y_pred = []
+        delta = 0
+        for i,sample in enumerate(nX_test):
+            res = pln.test(sample)
+            y_pred += [res]
+            delta += abs(y_test[i] - res)
+            timing_update(i,y_test[i]==res,title='test  ',clr=color.GREEN,size=len(nX_test),error=delta/float(i+1))
+        print()
+        print_confmatrix(confusion_matrix(y_test, y_pred))
+        print("GSN Acc. %.2f"%(accuracy_score(y_test, y_pred)))
+        y_predRF = RandomForestClassifier(random_state=0).fit(X_train,y_train).predict(X_test)
+        print_confmatrix(confusion_matrix(y_test, y_predRF))
+        print("RF  Acc. %.2f"%(accuracy_score(y_test, y_predRF)))
+        y_predSVC = SVC(kernel='rbf').fit(X_train,y_train).predict(X_test)
+        print_confmatrix(confusion_matrix(y_test, y_predSVC))
+        print("SVM Acc. %.2f"%(accuracy_score(y_test, y_predSVC)))
     
 if __name__ == "__main__":
     main(sys.argv[1:])
