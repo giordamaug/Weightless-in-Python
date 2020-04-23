@@ -1,3 +1,4 @@
+# coding: utf-8
 import numpy as np
 import argparse
 import sys
@@ -152,6 +153,9 @@ class PyramGSN:
         self._seed = map
         self._retina_size = size
         fanin = self._retina_size
+        self._values = [0, undef, 1]
+        self._novals = 3   # omega for multivalued
+        self._colors = [colored.fg('#%02x%02x%02x'%(int(i*255/(self._novals-1)),int(i*255/(self._novals-1)),int(i*255/(self._novals-1)))) + colored.bg('#%02x%02x%02x'%(int(i*255/(self._novals-1)),int(i*255/(self._novals-1)),int(i*255/(self._novals-1)))) for i in range(self._novals)]
         self._npln = []
         self._nbits = []
         self._nloc = mypowers[self._nobits]
@@ -406,10 +410,10 @@ class PyramGSN:
                 X[i] = self._layers[l][i][idx]
             if self._dblvl > 0: r = self._print__strip(self._output[l]); print("[%d]"%(l),r,tuples, X)  # print layer output (and addressable set)
 
-    def __str__(self,align='v'):
+    def __str__(self,align='h'):
         ''' GSN pyramid printing function
         '''
-        rep = "PLN Pyramid (Size: %d, NoBits: %d, Seed: %d, Layers: %r, Policy: %s, Mode: %r)\n"%(self._retina_size, self.getNoBits(),self.getSeed(),self.getNoPLN(),self._policy, self._mode)
+        rep = "GSN Pyramid (Size: %d, NoBits: %d, Seed: %d, Layers: %r, Policy: %s, Mode: %r)\n"%(self._retina_size, self.getNoBits(),self.getSeed(),self.getNoPLN(),self._policy, self._mode)
         if align == 'v':
             endl = "\n"
         else:
@@ -431,14 +435,8 @@ class PyramGSN:
     def _print__strip(self,r):
         rep = ""
         for e in r:
-            if e == undef:
-                rep += '\x1b[1;37;47m' + '%s'%(self._skip) + '\x1b[0m'   # gray (undefined)
-            elif e == 1:
-                rep += '\x1b[5;34;46m' + '%s'%(self._skip) + '\x1b[0m'   # light blue
-            else:
-                rep += '\x1b[2;35;40m' + '%s'%(self._skip) + '\x1b[0m'   # black
-        return rep
-        
+            rep += self._colors[self._values.index(e)] + '%s'%(self._skip) + colored.attr('reset')
+        return rep        
    
     def getNoBits(self):
         return self._nobits
@@ -473,34 +471,6 @@ class PyramGSN:
     def getSeed(self):
         return self._seed
 
-def print_data(r,size,skip=' '):
-    rep = ""
-    for i,e in enumerate(r):
-        if e == undef:
-            rep += '\x1b[1;37;47m' + '%s'%(skip) + '\x1b[0m'   # gray (undefined)
-        elif e == 1:
-            rep += '\x1b[5;34;46m' + '%s'%(skip) + '\x1b[0m'   # light blue
-        else:
-            rep += '\x1b[2;35;40m' + '%s'%(skip) + '\x1b[0m'   # black
-        if (i+1) % size == 0:
-            rep += '\n'
-    print(rep)
-    
-def genCode(n):
-    if n == 0:
-        return ['']
-    
-    code1 = genCode(n-1)
-    code2 = []
-    for codeWord in code1:
-        code2 = [codeWord] + code2
-        
-    for i in range(len(code1)):
-        code1[i] += '0'
-    for i in range(len(code2)):
-        code2[i] += '1'
-    return code1 + code2   
-
 def main(argv):
     # parsing command line
     args = parser.parse_args()
@@ -520,6 +490,7 @@ def main(argv):
             X, y = read_dataset_fromfile(args.inputfile)
             nX = binarize(X, size, args.code)
             y[y == -1] = 0
+            y = y.astype(np.int32)
 
     class_names = np.unique(y)
     dataname = os.path.basename(datafile).split(".")[0]
@@ -573,7 +544,7 @@ def main(argv):
             if debug > 0:  print("Label %d"%y[i]) ; print_data(sample,args.tics); print(pln)
             pln.train(sample, y_train[i])        
             res = pln.test(sample)
-            delta += abs(y_test[i] - res)
+            delta += abs(y_train[i] - res)
             if args.xflag: input("[TRAIN] Press Enter to continue..."); os.system('clear')
             timing_update(i,y_train[i]==res,title='train ',size=len(nX_train),error=delta/float(i+1))
         print()
