@@ -497,7 +497,6 @@ def main(argv):
         
     # create pyramids
     pln = PyramGSN(args.bits,len(nX[0]),map=args.map,dblvl=debug,policy=args.policy,mode=args.mode)
-
     if args.cv:
         kf = StratifiedKFold(random_state=0,n_splits=10, shuffle=True)
         timing_init()
@@ -510,13 +509,15 @@ def main(argv):
             X_train, X_test = X[train_index], X[test_index]
             y_train, y_test = y[train_index], y[test_index]
             ylabels = np.append(ylabels,y_test); delta = 0
+            delta = 0
             for i,sample in enumerate(nX_train):
                 if debug > 0:  print("Label %d"%y[i]) ; print_data(sample,args.tics); print(pln)
                 pln.train(sample, y_train[i])
                 res = pln.test(sample)
-                delta += abs(y_test[i] - res)
+                delta += abs(y_train[i] - res)
                 if args.xflag: input("[TRAIN] Press Enter to continue..."); os.system('clear')
                 timing_update(i,y_train[i]==res,title='train ',size=len(nX_train),error=delta/float(i+1))
+            print()
             timing_init()
             delta = 0
             for i,sample in enumerate(nX_test):
@@ -527,8 +528,6 @@ def main(argv):
             y_predRF = np.append(y_predRF, RandomForestClassifier(random_state=0).fit(X_train, y_train).predict(X_test))
             y_predSVC = np.append(y_predSVC, SVC(kernel='rbf').fit(X_train, y_train).predict(X_test))
             print()
-        timing_init()
-        print()
         print_confmatrix(confusion_matrix(ylabels, y_pred))
         print("GSN Acc. %.2f"%(accuracy_score(ylabels, y_pred)))
         print_confmatrix(confusion_matrix(ylabels, y_predRF))

@@ -82,7 +82,7 @@ def print_confmatrix(table,fieldsize=3,decimals=3):
     hfrmt = '{0: >%d}' % fieldsize
     dfrmt = '%%%dd' % fieldsize
     ffrmt = '%%%d.0%df' % (fieldsize,decimals)
-    str = ('\n ' * fieldsize)
+    str = ''
     for c in range(nclasses):
         str +=  ' '  + color.BOLD + hfrmt.format(c) + color.END
     print(str)
