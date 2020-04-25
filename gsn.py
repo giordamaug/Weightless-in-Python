@@ -17,15 +17,14 @@ import glob
     
     
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 
-parser = argparse.ArgumentParser(description='pln')
+parser = argparse.ArgumentParser(description='gsn')
 parser.add_argument('-i', "--inputfile", metavar='<inputfile>', type=str, help='input file ', required=True)
 parser.add_argument('-D', "--debuglvl", metavar='<debuglevel>', type=int, default=0, help='debug level', required=False)
-parser.add_argument('-x', "--xflag", help='interactive flag', default=False, action='store_true', required=False)
 parser.add_argument('-n', "--bits", metavar='<bitsno>', type=int, default=2, help='bit number', required=False)
 parser.add_argument('-z', "--tics", metavar='<ticsno>', type=int, default=10, help='tic number', required=False)
 parser.add_argument('-M', "--map", metavar='<mapseed>', type=int, default=-1,help='mapping seed', required=False)
@@ -39,62 +38,6 @@ parser.add_argument('-c', "--cv", help='cv flag', default=False, action='store_t
 mypowers = 2**np.arange(32, dtype = np.uint32)[::]
 tm_progress_ = 0.01
 tm_starttm_ = time.time()
-    
-
-class WiSARD:
-    """WiSARD Classifier """
-    def _mk_tuple(self, X, n_ram, map, size):
-        n_bit = self._nobits
-        intuple = [0]*n_ram
-        for i in range(n_ram):
-            for j in range(n_bit):
-                intuple[i] += mypowers[n_bit -1 - j] * X[map[((i * n_bit) + j) % size]]
-        return intuple
-    
-    def __init__(self,  nobits, size, classes = [0,1], map=-1):
-        self._nobits = nobits
-        self._seed = map
-        self._retina_size = size
-        self._nobits = nobits
-        self._nloc = mypowers[self._nobits]
-        self._classes = classes 
-        self._nrams = int(size/self._nobits) if size % self._nobits == 0 else int(size/self._nobits + 1)
-        self._mapping = np.arange(self._retina_size, dtype=int)
-        self._layers = [np.full((self._nrams, self._nloc),0) for c in classes]
-        if map > -1: np.random.seed(self._seed); np.random.shuffle(self._mapping)
-        
-    def train(self, X, y):
-        ''' Learning '''
-        intuple = self._mk_tuple(X, self._nrams, self._mapping, self._retina_size)
-        for i in range(self._nrams):
-            self._layers[y][i][intuple[i]] = 1
-
-    def test(self, X):
-        ''' Testing '''
-        intuple = self._mk_tuple(X, self._nrams, self._mapping, self._retina_size)
-        a = [[self._layers[y][i][intuple[i]] for i in range(self._nrams)].count(1) for y in self._classes]
-        return max(enumerate(a), key=(lambda x: x[1]))[0]
-    
-    def __str__(self):
-        ''' Printing function'''
-        rep = "WiSARD (Size: %d, NoBits: %d, Seed: %d, RAMs: %r)\n"%(self._retina_size, self._nobits,self._seed,self._nrams)
-        for i,l in enumerate(self._layers):  
-            rep += "[%d] "%(i)
-            c = 0
-            for r in l:
-                if c == 0: 
-                    rep += ""
-                else:
-                    rep += "    "
-                c += 1
-                for e in r:
-                    if e == 1:
-                        rep += '\x1b[5;34;46m' + '%s'%(self._skip) + '\x1b[0m'   # light blue
-                    else:
-                        rep += '\x1b[2;35;40m' + '%s'%(self._skip) + '\x1b[0m'   # black
-                rep += "\n"
-            rep += "\n"
-        return rep   
     
 class PyramGSN:
     """GSN Pyramid Classifier.
@@ -150,6 +93,7 @@ class PyramGSN:
     # creates input-neurons mappings lists
     def __init__(self,nobits,size,map=-1, policy='c',mode='normal',dblvl=0):
         self._nobits = nobits
+        self._datatype = 'binary'
         self._seed = map
         self._retina_size = size
         fanin = self._retina_size
@@ -223,7 +167,7 @@ class PyramGSN:
         output = [[undef for y in range(n)] for n in self._npln]
         X = Xorig
         tuples = []
-        if self._dblvl > 0: print("Input"); print("   ",self._print__strip(Xorig)); r = self._print__strip(X); print("Output (Recall)"," "*(len(Xorig)), "Addressable Cells")  # print layer output (and addressable set)
+        if self._dblvl > 1: print("Input"); print("   ",self._print__strip(Xorig)); r = self._print__strip(X); print("Output (Recall)"," "*(len(Xorig)), "Addressable Cells")  # print layer output (and addressable set)
         for l,n in enumerate(self._npln):
             tuples += [self._mk_tuple(X, n, self._mappings[l], self._sizes[l])]
             X = np.empty(n, dtype=np.int)
@@ -238,7 +182,7 @@ class PyramGSN:
                 else:
                     X[i] = undef
                 output[l][i] = X[i]
-            if self._dblvl > 0: r = self._print__strip(output[l]); print("[%d]"%(l),r,"  "*(len(Xorig)-len(output[l])+1),tuples[l])  # print layer output (and addressable set)
+            if self._dblvl > 1: r = self._print__strip(output[l]); print("[%d]"%(l),r,"  "*(len(Xorig)-len(output[l])+1),tuples[l])  # print layer output (and addressable set)
         return output[-1][0]
 
     def _det_choice(self,value,idxs):
@@ -268,7 +212,7 @@ class PyramGSN:
         self._output = [[undef for y in range(n)] for n in self._npln]
         X = Xorig
         self._tuples = []
-        if self._dblvl > 0: print("Output (Seek)","Addressable Cells")  # print layer output (and addressable set)
+        if self._dblvl > 1: print("Output (Seek)","Addressable Cells")  # print layer output (and addressable set)
         for l,n in enumerate(self._npln):
             tuples = self._mk_tuple(X, n, self._mappings[l], self._sizes[l])
             X = np.empty(n, dtype=np.int)
@@ -281,7 +225,7 @@ class PyramGSN:
                 else:
                     X[i] = undef
                 self._output[l][i] = X[i]
-            if self._dblvl > 0: r = self._print__strip(self._output[l]); print("[%d]"%(l),r,tuples)  # print layer output (and addressable set)
+            if self._dblvl > 1: r = self._print__strip(self._output[l]); print("[%d]"%(l),r,tuples)  # print layer output (and addressable set)
             self._tuples += [tuples]
   
     def _propagate_lazy_old(self,l,i,y):
@@ -372,7 +316,7 @@ class PyramGSN:
         '''
         self._seeking(Xorig, y)
         # Learning values
-        if self._dblvl > 0: print("Output (Learn)")  # print espected output
+        if self._dblvl > 1: print("Output (Learn)")  # print espected output
         self._propagate(len(self._layers)-1,0,y)
 
     def _train_lazy(self, Xorig, y):
@@ -385,7 +329,7 @@ class PyramGSN:
         '''
         self._seeking(Xorig, y)
         # Learning values
-        if self._dblvl > 0: print("Output (Learn)")  # print espected output
+        if self._dblvl > 1: print("Output (Learn)")  # print espected output
         self._propagate_lazy(len(self._layers)-1,0,y)
 
     def _train_progressive(self, Xorig, y):
@@ -399,7 +343,7 @@ class PyramGSN:
         self._output = [[undef for y in range(n)] for n in self._npln]
         X = Xorig
         self._tuples = []
-        if self._dblvl > 0: print("Output (Seek)","Addressable Cells")  # print layer output (and addressable set)
+        if self._dblvl > 1: print("Output (Seek)","Addressable Cells")  # print layer output (and addressable set)
         for l,n in enumerate(self._npln):
             tuples = self._mk_tuple(X, n, self._mappings[l], self._sizes[l])
             X = np.empty(n, dtype=np.int)
@@ -408,7 +352,42 @@ class PyramGSN:
                     if self._layers[l][i][idx] == undef:   # set to defined value if undefined
                         self._layers[l][i][idx] = y
                 X[i] = self._layers[l][i][idx]
-            if self._dblvl > 0: r = self._print__strip(self._output[l]); print("[%d]"%(l),r,tuples, X)  # print layer output (and addressable set)
+            if self._dblvl > 1: r = self._print__strip(self._output[l]); print("[%d]"%(l),r,tuples, X)  # print layer output (and addressable set)
+
+    def fit(self, X, y):
+        if self._dblvl > 0: timing_init()
+        delta = 0
+        for i,sample in enumerate(X):
+            if self._dblvl > 1:  print("Label %d"%y[i])
+            self.train(sample, y[i])        
+            res = self.test(sample)
+            delta += abs(y[i] - res)
+            if self._dblvl > 0: timing_update(i,y[i]==res,title='train ',size=len(X),error=delta/float(i+1))
+        if self._dblvl > 0: print()
+        return self
+
+    def predict(self,X):
+        if self._dblvl > 0: timing_init()
+        y_pred = np.array([])
+        for i,sample in enumerate(X):
+            y_pred = np.append(y_pred,[self.test(sample)])
+            if self._dblvl > 0: timing_update(i,True,title='test  ',clr=color.GREEN,size=len(X))
+        if self._dblvl > 0: print()
+        y_pred[y_pred == undef] = 0   # fix undef
+        return y_pred
+
+    def predict_ck(self,X, y):
+        if self._dblvl > 0: timing_init()
+        y_pred = np.array([])
+        delta = 0
+        for i,sample in enumerate(X):
+            res = self.test(sample)
+            delta += abs(y[i] - res)
+            y_pred = np.append(y_pred,[res])
+            if self._dblvl > 0: timing_update(i,True,title='test  ',clr=color.GREEN,size=len(X),error=delta/float(i+1))
+        if self._dblvl > 0: print()
+        y_pred[y_pred == undef] = 0   # fix undef
+        return y_pred
 
     def __str__(self,align='h'):
         ''' GSN pyramid printing function
@@ -438,6 +417,9 @@ class PyramGSN:
             rep += self._colors[self._values.index(e)] + '%s'%(self._skip) + colored.attr('reset')
         return rep        
    
+    def getDataType(self):
+        return self._datatype
+
     def getNoBits(self):
         return self._nobits
     
@@ -470,100 +452,3 @@ class PyramGSN:
     
     def getSeed(self):
         return self._seed
-
-def main(argv):
-    # parsing command line
-    args = parser.parse_args()
-    debug = args.debuglvl
-    size = args.tics
-    
-    # check dataset format (arff, libsvm)
-    datafile = args.inputfile
-    if os.path.isdir(args.inputfile):
-        X, y = read_pics_dataset(args.inputfile,labels=[0,1])
-        X, y = shuffle(X, y)
-        size = len(X[0])/32
-    else:
-        if not os.path.isfile(args.inputfile):
-            raise ValueError("Cannot open file %s" % args.inputfile)
-        else:
-            X, y = read_dataset_fromfile(args.inputfile)
-            nX = binarize(X, size, args.code)
-            y[y == -1] = 0
-            y = y.astype(np.int32)
-
-    class_names = np.unique(y)
-    dataname = os.path.basename(datafile).split(".")[0]
-        
-    # create pyramids
-    pln = PyramGSN(args.bits,len(nX[0]),map=args.map,dblvl=debug,policy=args.policy,mode=args.mode)
-    if args.cv:
-        kf = StratifiedKFold(random_state=0,n_splits=10, shuffle=True)
-        timing_init()
-        ylabels = np.array([])
-        y_predRF = np.array([])
-        y_predSVC = np.array([])
-        y_pred = []
-        for train_index, test_index in kf.split(X,y):
-            nX_train, nX_test = nX[train_index], nX[test_index]
-            X_train, X_test = X[train_index], X[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-            ylabels = np.append(ylabels,y_test); delta = 0
-            delta = 0
-            for i,sample in enumerate(nX_train):
-                if debug > 0:  print("Label %d"%y[i]) ; print_data(sample,args.tics); print(pln)
-                pln.train(sample, y_train[i])
-                res = pln.test(sample)
-                delta += abs(y_train[i] - res)
-                if args.xflag: input("[TRAIN] Press Enter to continue..."); os.system('clear')
-                timing_update(i,y_train[i]==res,title='train ',size=len(nX_train),error=delta/float(i+1))
-            print()
-            timing_init()
-            delta = 0
-            for i,sample in enumerate(nX_test):
-                res = pln.test(sample)
-                y_pred += [res]
-                delta += abs(y_test[i] - res)
-                timing_update(i,y_test[i]==res,title='test  ',clr=color.GREEN,size=len(nX_test),error=delta/float(i+1))
-            y_predRF = np.append(y_predRF, RandomForestClassifier(random_state=0).fit(X_train, y_train).predict(X_test))
-            y_predSVC = np.append(y_predSVC, SVC(kernel='rbf').fit(X_train, y_train).predict(X_test))
-            print()
-        print_confmatrix(confusion_matrix(ylabels, y_pred))
-        print("GSN Acc. %.2f"%(accuracy_score(ylabels, y_pred)))
-        print_confmatrix(confusion_matrix(ylabels, y_predRF))
-        print("RF  Acc. %.2f"%(accuracy_score(ylabels, y_predRF)))
-        print_confmatrix(confusion_matrix(ylabels, y_predSVC))
-        print("SVM Acc. %.2f"%(accuracy_score(ylabels, y_predSVC)))
-    else:
-        nX_train, nX_test, y_train, y_test = nX,nX,y,y
-        X_train, X_test = X,X
-        timing_init()
-        delta = 0
-        for i,sample in enumerate(nX_train):
-            if debug > 0:  print("Label %d"%y[i]) ; print_data(sample,args.tics); print(pln)
-            pln.train(sample, y_train[i])        
-            res = pln.test(sample)
-            delta += abs(y_train[i] - res)
-            if args.xflag: input("[TRAIN] Press Enter to continue..."); os.system('clear')
-            timing_update(i,y_train[i]==res,title='train ',size=len(nX_train),error=delta/float(i+1))
-        print()
-        timing_init()
-        y_pred = []
-        delta = 0
-        for i,sample in enumerate(nX_test):
-            res = pln.test(sample)
-            y_pred += [res]
-            delta += abs(y_test[i] - res)
-            timing_update(i,y_test[i]==res,title='test  ',clr=color.GREEN,size=len(nX_test),error=delta/float(i+1))
-        print()
-        print_confmatrix(confusion_matrix(y_test, y_pred))
-        print("GSN Acc. %.2f"%(accuracy_score(y_test, y_pred)))
-        y_predRF = RandomForestClassifier(random_state=0).fit(X_train,y_train).predict(X_test)
-        print_confmatrix(confusion_matrix(y_test, y_predRF))
-        print("RF  Acc. %.2f"%(accuracy_score(y_test, y_predRF)))
-        y_predSVC = SVC(kernel='rbf').fit(X_train,y_train).predict(X_test)
-        print_confmatrix(confusion_matrix(y_test, y_predSVC))
-        print("SVM Acc. %.2f"%(accuracy_score(y_test, y_predSVC)))
-    
-if __name__ == "__main__":
-    main(sys.argv[1:])
