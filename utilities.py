@@ -4,9 +4,12 @@ import time
 import colored
 
 from sklearn.datasets import load_svmlight_file
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler,LabelEncoder
 import scipy.sparse as sps
 import numpy as np
+from scipy.io import arff
+import urllib
+from io import StringIO
 
 white_color = colored.fg('#ffffff') + colored.bg('#ffffff')
 black_color = colored.fg('#000000') + colored.bg('#000000')
@@ -82,7 +85,7 @@ def print_confmatrix(table,fieldsize=3,decimals=3):
     hfrmt = '{0: >%d}' % fieldsize
     dfrmt = '%%%dd' % fieldsize
     ffrmt = '%%%d.0%df' % (fieldsize,decimals)
-    str = ''
+    str = '\n' + ' ' * fieldsize
     for c in range(nclasses):
         str +=  ' '  + color.BOLD + hfrmt.format(c) + color.END
     print(str)
@@ -152,11 +155,42 @@ def unison_shuffled_copies(a, b):
     p = np.random.permutation(len(a))
     return a[p], b[p]
 
+def is_url(url):
+    return urllib.parse.urlparse(url).scheme != ""
+
+def read_dataset_fromurl(url):
+    try:
+        response = urllib.request.urlopen(url)
+        datapath = urllib.parse.urlparse(url).path
+    except:
+        raise ValueError('Cannot open url %s'%url)
+    f = StringIO(response.read().decode('utf-8'))
+    if datapath.endswith('.libsvm'):
+        X, y = load_svmlight_file(f)
+        if sps.issparse(X):
+            X = X.toarray()
+        return X,y
+    elif datapath.endswith('.arff'):
+        data, meta = arff.loadarff(f)
+        y = np.array(data['class'])
+        X = np.array(data[meta.names()[:-1]].tolist(), dtype=np.float64)
+        y = LabelEncoder().fit_transform(y)
+        return X,y
+    else:
+        raise Exception('Unsupported file format!')
+
+
 def read_dataset_fromfile(datapath):
     if datapath.endswith('.libsvm'):
         X, y = load_svmlight_file(datapath)
         if sps.issparse(X):
             X = X.toarray()
+        return X,y
+    elif datapath.endswith('.arff'):
+        data, meta = arff.loadarff(open(datapath, 'r'))
+        y = np.array(data['class'])
+        X = np.array(data[meta.names()[:-1]].tolist(), dtype=np.float64)
+        y = LabelEncoder().fit_transform(y)
         return X,y
     else:
         raise Exception('Unsupported file format!')
