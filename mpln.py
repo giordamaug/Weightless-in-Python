@@ -23,7 +23,7 @@ import pickle
 import copy
 
 # import scikit-learn
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score,f1_score
 from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
@@ -99,6 +99,7 @@ class PyramMPLN:
 
     def __init__(self,nobits,size,omega=11,alpha = 2.5, kappa=1, seed=None, map=None, dblvl=0):
         self._nobits = nobits
+        self._datatype = 'binary'
         self._seed = seed
         self._skip = ' '
         self._retina_size = size
@@ -218,13 +219,13 @@ class PyramMPLN:
             Error = LastError
         return self
 
-    def predict(self,X_test):
+    def predict(self,X):
         if self._dblvl > 0: timing_init()
         y_pred = np.array([])
         delta = 0
-        for i,sample in enumerate(X_test):
+        for i,sample in enumerate(X):
             y_pred = np.append(y_pred,[ self.test(sample)])
-            if self._dblvl > 0: timing_update(i,True,title='test    ',clr=color.GREEN,size=len(X_test))
+            if self._dblvl > 0: timing_update(i,True,title='test    ',clr=color.GREEN,size=len(X))
         return y_pred
 
     def __str__(self,align='h'):
@@ -253,6 +254,9 @@ class PyramMPLN:
             rep += self._colors[e] + '%s'%(self._skip) + colored.attr('reset')
         return rep
     
+    def getDataType(self):
+        return self._datatype
+
     def getOutput(self):
         return self.output[-1][0]
     
@@ -326,7 +330,7 @@ def main(argv):
     print('')
     y_pred = mpln.predict(X_test)
     print_confmatrix(confusion_matrix(y_test, y_pred))
-    print("MPLN Acc. %.2f"%(accuracy_score(y_test, y_pred)))
+    print("MPLN Acc. %.2f f1 %.2f"%(accuracy_score(y_test, y_pred),f1_score(y_test, y_pred, average='macro')))
     if mpln._dblvl > 1: print(mpln)
     return mpln
                    
