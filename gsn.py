@@ -361,7 +361,7 @@ class PyramGSN:
             if self._dblvl > 1:  print("Label %d"%y[i])
             self.train(sample, y[i])        
             res = self.test(sample)
-            delta += abs(y[i] - res)
+            delta += abs(y[i] - res) if res != undef else 1
             if self._dblvl > 0: timing_update(i,y[i]==res,title='train ',size=len(X),error=delta/float(i+1))
         if self._dblvl > 0: print()
         return self
@@ -369,9 +369,12 @@ class PyramGSN:
     def predict(self,X):
         if self._dblvl > 0: timing_init()
         y_pred = np.array([])
+        delta = 0
         for i,sample in enumerate(X):
-            y_pred = np.append(y_pred,[self.test(sample)])
-            if self._dblvl > 0: timing_update(i,True,title='test  ',clr=color.GREEN,size=len(X))
+            res = self.test(sample)
+            y_pred = np.append(y_pred,[res])
+            delta += abs(y[i] - res) if res != undef else 1
+            if self._dblvl > 0: timing_update(i,True,title='test  ',clr=color.GREEN,size=len(X),error=delta/float(i+1))
         if self._dblvl > 0: print()
         y_pred[y_pred == undef] = 0   # fix undef
         return y_pred

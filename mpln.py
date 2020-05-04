@@ -224,8 +224,10 @@ class PyramMPLN:
         y_pred = np.array([])
         delta = 0
         for i,sample in enumerate(X):
-            y_pred = np.append(y_pred,[ self.test(sample)])
-            if self._dblvl > 0: timing_update(i,True,title='test    ',clr=color.GREEN,size=len(X))
+            res = self.test(sample)
+            y_pred = np.append(y_pred,[ res])
+            delta += abs(y[i] - res)
+            if self._dblvl > 0: timing_update(i,True,title='test    ',clr=color.GREEN,size=len(X),error=delta/float(i+1))
         return y_pred
 
     def __str__(self,align='h'):
@@ -294,45 +296,3 @@ class PyramMPLN:
         if value >= 0:
             self._dblvl = value
 
-def main(argv):
-    # parsing command line
-    args = parser.parse_args(argv)
-    debug = args.debuglvl
-    size = args.tics
-
-    # load dataset
-    if os.path.isdir(args.inputfile):
-        X, y = read_pics_dataset(args.inputfile,labels=[0,1])
-        #X, y = read_pics_dataset(args.inputfile,labels=[0,1,2,3,4,5,6,7,8,9])
-        #y[y == 2] = 0
-        #y[y == 3] = 1
-        X, y = shuffle(X, y)
-        size = len(X[0])/32
-    else:
-        if not os.path.isfile(args.inputfile):
-            raise ValueError("Cannot open file %s" % args.inputfile)
-        else:
-            X, y = read_dataset_fromfile(args.inputfile)
-            X = binarize(X, size, args.code)
-            y[y == -1] = 0
-    class_names = np.unique(y)
-    y = y.astype(np.int32)
-        
-    if args.cv:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
-    else:
-        X_train, X_test, y_train, y_test = X,X,y,y
-
-    mpln = PyramMPLN(args.bits,len(X[0]),omega=args.omega,alpha=args.alpha,map=args.mapping,dblvl=debug)
-    mpln.fit(X_train,y_train)
-    if args.dumpfile is not None:
-        pickle.dump(mpln,open(args.dumpfile,'w'))
-    print('')
-    y_pred = mpln.predict(X_test)
-    print_confmatrix(confusion_matrix(y_test, y_pred))
-    print("MPLN Acc. %.2f f1 %.2f"%(accuracy_score(y_test, y_pred),f1_score(y_test, y_pred, average='macro')))
-    if mpln._dblvl > 1: print(mpln)
-    return mpln
-                   
-if __name__ == "__main__":
-    main(sys.argv[1:])

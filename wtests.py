@@ -6,7 +6,6 @@ import random
 import os
 from utilities import *
 import time
-
 # import warnings filter
 from warnings import simplefilter
 # ignore all future warnings
@@ -33,7 +32,9 @@ parser.add_argument('-D', "--debuglvl", metavar='<debuglevel>', type=int, defaul
 parser.add_argument('-n', "--bits", metavar='<bitsno>', type=int, default=2, help='bit number', required=False)
 parser.add_argument('-z', "--tics", metavar='<ticsno>', type=int, default=10, help='tic number', required=False)
 parser.add_argument('-m', "--map", metavar='<mapseed>', type=int, default=-1,help='mapping seed', required=False)
-parser.add_argument('-M', "--methods", metavar='<methods>', type=str, choices=['WiSARD', 'PyramGSN', 'PyramMPLN', 'SVC', 'RF'], default='WiSARD',help='method list', required=False,  nargs='+')
+parser.add_argument('-t', "--trainmode", metavar='<train mode>', type=str, default='normal', help='learning mode', required=False, choices=['normal', 'lazy','progressive'])
+parser.add_argument('-p', "--policy", metavar='<policy>', type=str, default='d', help='policy', required=False, choices=['c', 'd'])
+parser.add_argument('-M', "--methods", metavar='<methods>', type=str, choices=['WiSARD', 'PyramGSN', 'PyramMPLN', 'SVC', 'RF'], default='PyramGSN',help='method list', required=False,  nargs='+')
 parser.add_argument('-C', "--code", metavar='<code>', type=str, default='t', help='coding', required=False, choices=['g', 't','c'])
 parser.add_argument('-S', "--scale", default=True, action='store_true')
 parser.add_argument('-c', "--cv", help='cv flag', default=False, action='store_true', required=False)
@@ -42,11 +43,11 @@ def print_measures(method,labels,predictions):
     print_confmatrix(confusion_matrix(labels, predictions))
     print("%s Acc. %.2f f1 %.2f"%(method,accuracy_score(labels, predictions),f1_score(labels, predictions, average='macro')))
 
-def classifier(method, size, classes, dblvl):
+def classifier(method, size, classes, dblvl, map, mode, policy):
     if method=='WiSARD':
         return WiSARD(16,size,map=0,classes=classes,dblvl=dblvl)
     elif method== 'PyramGSN':
-        return PyramGSN(20,size,map=-1,dblvl=dblvl,policy='s',mode='progressive')
+        return PyramGSN(20,size,map=map,dblvl=dblvl,policy=policy,mode=mode)
     elif method=='SVC':
         return SVC(kernel='rbf')
     elif method=='RF':
@@ -73,6 +74,7 @@ def main(argv):
     else:
         if os.path.isdir(args.inputfile):
             X, y = read_pics_dataset(args.inputfile,labels=[0,1])
+            nX = X
             X, y = shuffle(X, y)
             size = len(X[0])/32
         else:
@@ -100,7 +102,7 @@ def main(argv):
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
                 ylabels = np.append(ylabels,y_test)
-                clf = classifier(m, len(nX[0]), class_names, args.debuglvl)
+                clf = classifier(m, len(nX[0]), class_names, args.debuglvl, args.map, args.trainmode, args.policy)
                 if m in ['WiSARD', 'PyramGSN', 'PyramMPLN']: 
                     predictions[i] = np.append(predictions[i],clf.fit(nX_train,y_train).predict_ck(nX_test,y_test))
                 else:
@@ -110,7 +112,7 @@ def main(argv):
         nX_train, nX_test, y_train, y_test = nX,nX,y,y
         X_train, X_test = X,X
         for m in args.methods:
-            clf = classifier(m, len(nX[0]), class_names, args.debuglvl)
+            clf = classifier(m, len(nX[0]), class_names, args.debuglvl, args.map, args.trainmode, args.policy)
             if m in ['WiSARD', 'PyramGSN', 'PyramMPLN']: 
                 y_pred = clf.fit(nX_train,y_train).predict_ck(nX_test,y_test)
             else:

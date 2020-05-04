@@ -10,6 +10,7 @@ import numpy as np
 from scipy.io import arff
 import urllib
 from io import StringIO
+from PIL import Image
 
 white_color = colored.fg('#ffffff') + colored.bg('#ffffff')
 black_color = colored.fg('#000000') + colored.bg('#000000')
@@ -140,9 +141,9 @@ def read_pics_dataset(rootdir, labels=[0,1]):
                 if not f.startswith('.'):
                     filename = os.path.join(rootdir,dir,f)
                     if os.path.isfile(filename):
-                        #img = Image.open(filename).convert('L')
-                        #np_img = np.array(img)
-                        np_img = misc.imread(filename)
+                        img = Image.open(filename).convert('L')
+                        np_img = np.array(img)
+                        #np_img = misc.imread(filename)
                         np_img = ~np_img
                         np_img[np_img > 0] = 1
                         np_img = np_img.flatten()
