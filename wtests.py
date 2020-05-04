@@ -89,8 +89,6 @@ def main(argv):
     class_names = np.unique(y)
     dataname = os.path.basename(datafile).split(".")[0]
         
-    GSNpolicy = "d"
-    GSNmode = "progressive"
     # train and validate
     if args.cv:
         kf = StratifiedKFold(random_state=0,n_splits=10, shuffle=True)
