@@ -382,7 +382,6 @@ class PyramGSN:
         delta = 0
         for i,sample in enumerate(X):
             res = self.test(sample)
-            print(res,y[i])
             delta += abs(y[i] - res) if res != undef else 1
             y_pred = np.append(y_pred,[res])
             if self._dblvl > 0: timing_update(i,True,title='test  ',clr=color.GREEN,size=len(X),error=delta/float(i+1))
