@@ -1,0 +1,49 @@
+python wtests.py -i OptDigits/train -n 2 -t progressive -p d -D 1 -c -M PyramGSN
+      0   1
+   ┌───┬───┐
+  0│166│ 23│
+  1│175│ 23│
+   └───┴───┘
+PyramGSN Acc. 0.49 f1 0.41
+
+python wtests.py -i OptDigits/train -n 4 -t progressive -p d -D 1 -c -M PyramGSN
+      0   1
+   ┌───┬───┐
+  0│101│ 88│
+  1│117│ 81│
+   └───┴───┘
+PyramGSN Acc. 0.47 f1 0.47
+
+python wtests.py -i OptDigits/train -n 6 -t progressive -p d -D 1 -c -M PyramGSN
+      0   1
+   ┌───┬───┐
+  0│ 97│ 92│
+  1│109│ 89│
+   └───┴───┘
+PyramGSN Acc. 0.48 f1 0.48
+
+python wtests.py -i OptDigits/train -n 8 -t progressive -p d -D 1 -c -M PyramGSN
+      0   1
+   ┌───┬───┐
+  0│106│ 83│
+  1│119│ 79│
+   └───┴───┘
+PyramGSN Acc. 0.48 f1 0.48
+
+python wtests.py -i OptDigits/train -n 10 -t progressive -p d -D 1 -c -M PyramGSN
+      0   1
+   ┌───┬───┐
+  0│110│ 79│
+  1│125│ 73│
+   └───┴───┘
+PyramGSN Acc. 0.47 f1 0.47
+
+python wtests.py -i OptDigits/train -n 15 -t progressive -p d -D 1 -c -M PyramGSN
+      0   1
+   ┌───┬───┐
+  0│ 98│ 91│
+  1│ 94│104│
+   └───┴───┘
+PyramGSN Acc. 0.52 f1 0.52
+
+
