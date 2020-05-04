@@ -1,3 +1,5 @@
+PROGRESSIVE GSN (deterministic)
+
 python wtests.py -i OptDigits/train -n 2 -t progressive -p d -D 1 -c -M PyramGSN
       0   1
    ┌───┬───┐
@@ -46,4 +48,23 @@ python wtests.py -i OptDigits/train -n 15 -t progressive -p d -D 1 -c -M PyramGS
    └───┴───┘
 PyramGSN Acc. 0.52 f1 0.52
 
+python wtests.py -i OptDigits/train -n 16 -t progressive -p d -D 1 -c -M PyramGSN
+      0   1
+   ┌───┬───┐
+  0│ 94│ 95│
+  1│ 94│104│
+   └───┴───┘
+PyramGSN Acc. 0.51 f1 0.51
+
+python wtests.py -i OptDigits/train -n 20 -t progressive -p d -D 1 -c -M PyramGS
+      0   1
+   ┌───┬───┐
+  0│113│ 76│
+  1│119│ 79│
+   └───┴───┘
+PyramGSN Acc. 0.50 f1 0.49
+
+LAZY GSN
+
+python wtests.py -i OptDigits/train -n 2 -t lazy -p d -D 1 -c -M PyramGSN
 
