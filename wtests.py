@@ -74,8 +74,8 @@ def main(argv):
     else:
         if os.path.isdir(args.inputfile):
             X, y = read_pics_dataset(args.inputfile,labels=[0,1])
-            nX = X
             X, y = shuffle(X, y)
+            nX = X
             size = len(X[0])/32
         else:
             if not os.path.isfile(args.inputfile):
