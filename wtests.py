@@ -45,7 +45,7 @@ def print_measures(method,labels,predictions):
 
 def classifier(method, nbit, size, classes, dblvl, map, mode, policy):
     if method=='WiSARD':
-        return WiSARD(16,size,map=0,classes=classes,dblvl=dblvl)
+        return WiSARD(nbit,,size,map=map,classes=classes,dblvl=dblvl)
     elif method== 'PyramGSN':
         return PyramGSN(nbit,size,map=map,dblvl=dblvl,policy=policy,mode=mode)
     elif method=='SVC':
