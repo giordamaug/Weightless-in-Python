@@ -369,12 +369,9 @@ class PyramGSN:
     def predict(self,X):
         if self._dblvl > 0: timing_init()
         y_pred = np.array([])
-        delta = 0
         for i,sample in enumerate(X):
-            res = self.test(sample)
-            y_pred = np.append(y_pred,[res])
-            delta += abs(y[i] - res) if res != undef else 1
-            if self._dblvl > 0: timing_update(i,True,title='test  ',clr=color.GREEN,size=len(X),error=delta/float(i+1))
+            y_pred = np.append(y_pred,[self.test(sample)])
+            if self._dblvl > 0: timing_update(i,True,title='test  ',clr=color.GREEN,size=len(X))
         if self._dblvl > 0: print()
         y_pred[y_pred == undef] = 0   # fix undef
         return y_pred
@@ -386,7 +383,7 @@ class PyramGSN:
         for i,sample in enumerate(X):
             res = self.test(sample)
             delta += abs(y[i] - res)
-            y_pred = np.append(y_pred,[res])
+            y_pred = np.append(y_pred,[res]) if res != undef else 1
             if self._dblvl > 0: timing_update(i,True,title='test  ',clr=color.GREEN,size=len(X),error=delta/float(i+1))
         if self._dblvl > 0: print()
         y_pred[y_pred == undef] = 0   # fix undef

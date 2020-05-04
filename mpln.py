@@ -222,12 +222,21 @@ class PyramMPLN:
     def predict(self,X):
         if self._dblvl > 0: timing_init()
         y_pred = np.array([])
+        for i,sample in enumerate(X):
+            y_pred = np.append(y_pred,[ self.test(sample)])
+            if self._dblvl > 0: timing_update(i,True,title='test    ',clr=color.GREEN,size=len(X))
+        return y_pred
+
+    def predict_ck(self,X, y):
+        if self._dblvl > 0: timing_init()
+        y_pred = np.array([])
         delta = 0
         for i,sample in enumerate(X):
             res = self.test(sample)
-            y_pred = np.append(y_pred,[ res])
             delta += abs(y[i] - res)
+            y_pred = np.append(y_pred,[res])
             if self._dblvl > 0: timing_update(i,True,title='test    ',clr=color.GREEN,size=len(X),error=delta/float(i+1))
+        if self._dblvl > 0: print()
         return y_pred
 
     def __str__(self,align='h'):
