@@ -43,11 +43,11 @@ def print_measures(method,labels,predictions):
     print_confmatrix(confusion_matrix(labels, predictions))
     print("%s Acc. %.2f f1 %.2f"%(method,accuracy_score(labels, predictions),f1_score(labels, predictions, average='macro')))
 
-def classifier(method, size, classes, dblvl, map, mode, policy):
+def classifier(method, nbit, size, classes, dblvl, map, mode, policy):
     if method=='WiSARD':
         return WiSARD(16,size,map=0,classes=classes,dblvl=dblvl)
     elif method== 'PyramGSN':
-        return PyramGSN(20,size,map=map,dblvl=dblvl,policy=policy,mode=mode)
+        return PyramGSN(nbit,size,map=map,dblvl=dblvl,policy=policy,mode=mode)
     elif method=='SVC':
         return SVC(kernel='rbf')
     elif method=='RF':
@@ -102,7 +102,7 @@ def main(argv):
                 X_train, X_test = X[train_index], X[test_index]
                 y_train, y_test = y[train_index], y[test_index]
                 ylabels = np.append(ylabels,y_test)
-                clf = classifier(m, len(nX[0]), class_names, args.debuglvl, args.map, args.trainmode, args.policy)
+                clf = classifier(m, args.bits, len(nX[0]), class_names, args.debuglvl, args.map, args.trainmode, args.policy)
                 if m in ['WiSARD', 'PyramGSN', 'PyramMPLN']: 
                     predictions[i] = np.append(predictions[i],clf.fit(nX_train,y_train).predict_ck(nX_test,y_test))
                 else:
@@ -112,7 +112,7 @@ def main(argv):
         nX_train, nX_test, y_train, y_test = nX,nX,y,y
         X_train, X_test = X,X
         for m in args.methods:
-            clf = classifier(m, len(nX[0]), class_names, args.debuglvl, args.map, args.trainmode, args.policy)
+            clf = classifier(m, args.bits, len(nX[0]), class_names, args.debuglvl, args.map, args.trainmode, args.policy)
             if m in ['WiSARD', 'PyramGSN', 'PyramMPLN']: 
                 y_pred = clf.fit(nX_train,y_train).predict_ck(nX_test,y_test)
             else:
