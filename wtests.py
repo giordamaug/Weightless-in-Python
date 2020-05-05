@@ -84,8 +84,10 @@ def main(argv):
                 try:
                     dataset = globals()['load_'+args.inputfile]()
                     idx = np.argwhere((dataset.target == 0) | (dataset.target == 1))
-                    X = dataset.images[idx]
-                    X = X.reshape(X.shape[0], X.shape[1] * X.shape[2] * X.shape[3])
+                    #X = dataset.images[idx]
+                    #X = X.reshape(X.shape[0], X.shape[1] * X.shape[2] * X.shape[3])
+                    X = dataset.data[idx]
+                    X = X.reshape(X.shape[0], X.shape[1] * X.shape[2])
                     y = dataset.target[idx]
                     y = y.reshape(y.shape[0])
                     nX = binarize(X, size, args.code)
