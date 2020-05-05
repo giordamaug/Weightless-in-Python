@@ -52,8 +52,8 @@ def classifier(method, nbit, size, classes, dblvl, map, mode, policy):
         return SVC(kernel='rbf')
     elif method=='RF':
         return RandomForestClassifier(random_state=0)
-    #elif method=='PyramMPLN':
-    #    return PyramMPLN()
+    elif method=='PyramMPLN':
+        return PyramMPLN(nbit,size,map=map,dblvl=dblvl,omega=11,alpha = 2.5)
     else:
         raise Exception('Unsupported classifier!')
 
