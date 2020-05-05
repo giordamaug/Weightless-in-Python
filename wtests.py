@@ -15,6 +15,7 @@ import glob
 
 # load scikit-learn stuff
 from sklearn.model_selection import StratifiedKFold
+from sklearn.datasets import *
 from sklearn.metrics import confusion_matrix, accuracy_score, f1_score
 # benchmark classifiers
 from sklearn.ensemble import RandomForestClassifier
@@ -79,13 +80,25 @@ def main(argv):
             size = len(X[0])/32
         else:
             if not os.path.isfile(args.inputfile):
-                raise ValueError("Cannot open file %s" % args.inputfile)
+                # try to lad sklearn dataset from name
+                try:
+                    dataset = globals()['load_'+args.inputfile]()
+                    idx = np.argwhere((dataset.target == 0) | (dataset.target == 1))
+                    X = dataset.images[idx]
+                    X = X.reshape(X.shape[0], X.shape[1] * X.shape[2] * X.shape[3])
+                    y = dataset.target[idx]
+                    y = y.reshape(y.shape[0])
+                    nX = binarize(X, size, args.code)
+                    y = y.astype(np.int32)
+                except:
+                    raise ValueError("Cannot open file %s" % args.inputfile)
             else:
                 X, y = read_dataset_fromfile(args.inputfile)
                 nX = binarize(X, size, args.code)
                 y[y == -1] = 0
                 y = y.astype(np.int32)
 
+    print(X.shape,y.shape)
     class_names = np.unique(y)
     dataname = os.path.basename(datafile).split(".")[0]
         
