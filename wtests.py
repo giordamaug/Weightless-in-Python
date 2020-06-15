@@ -33,11 +33,11 @@ parser.add_argument('-D', "--debuglvl", metavar='<debuglevel>', type=int, defaul
 parser.add_argument('-n', "--bits", metavar='<bitsno>', type=int, default=2, help='bit number (int) - range: 2-32 (default 2)', required=False)
 parser.add_argument('-z', "--tics", metavar='<ticsno>', type=int, default=10, help='tic number (int) - range > 1 (default 10)', required=False)
 parser.add_argument('-m', "--map", metavar='<mapseed>', type=int, default=-1,help='mapping seed (int) -  < 0 for linear mapping (default), 0 for rnd mapping with rnd seed, >0 for rnd mapping with fixed seed', required=False)
-parser.add_argument('-t', "--trainmode", metavar='<train mode>', type=str, default='progressive', help='learning mode (str) - allowed values: "normal", "lazy", "progressive" (default)', required=False, choices=['normal', 'lazy','progressive'])
-parser.add_argument('-p', "--policy", metavar='<policy>', type=str, default='d', help='policy type - allowed values: "d" for deterministic (default), "c" for random choice', required=False, choices=['c', 'd'])
+parser.add_argument('-t', "--trainmode", metavar='<train mode>', type=str, default='progressive', help='learning mode (str) - allowed values: "normal", "lazy", "progressive" (default). Note: valid only for PyramGSN! ', required=False, choices=['normal', 'lazy','progressive'])
+parser.add_argument('-p', "--policy", metavar='<policy>', type=str, default='d', help='policy type - allowed values: "d" for deterministic (default), "c" for random choice. Note: valid only for PyramGSN!', required=False, choices=['c', 'd'])
 parser.add_argument('-M', "--method", metavar='<method>', type=str, choices=['WiSARD', 'PyramGSN', 'PyramMPLN', 'SVC', 'RF'], default='WiSARD',help='method list (str list) - allowed values: WiSARD, PyramGSN, PyramMPLN, SVC, RF (default WiSARD)', required=False,  nargs='+')
 parser.add_argument('-C', "--code", metavar='<code>', type=str, default='t', help='data encoding - allowed values: "g" for graycode, "t" for thermometer (default), "c" for cursor', required=False, choices=['g', 't','c'])
-parser.add_argument('-c', "--cv", help='enable flag for 10-fold cross-validation on dataset (default disabled)', default=False, action='store_true', required=False)
+parser.add_argument('-c', "--cv", help='enable flag for 10-fold cross-validation on dataset (default disabled). If not set, testing is done on the training dataset.', default=False, action='store_true', required=False)
 
 def print_measures(method,labels,predictions):
     print_confmatrix(confusion_matrix(labels, predictions))
