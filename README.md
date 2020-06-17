@@ -7,7 +7,10 @@ This python package is a suite of implementations for the following weightless n
 ## Software Requirements
 
 - Python 3.x
-- Scikit-learn for python (version >= 0.22)
+- Scikit-learn package for python (version >= 0.22)
+- scipy package for python
+- PIL package for python
+- colored package for python
 
 ## Usage
 
